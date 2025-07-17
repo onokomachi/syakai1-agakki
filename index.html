@@ -1,0 +1,1002 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geo-Histo Hack</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Noto+Sans+JP:wght@400;700;900&display=swap');
+    
+    :root {
+      --primary: #00b3ff;
+      --secondary: #0066cc;
+      --accent: #00ffcc;
+      --highlight: #ffff00;
+      --dark: #0a0a20;
+      --darker: #050510;
+      --glow: 0 0 10px var(--primary), 0 0 20px rgba(0, 179, 255, 0.5);
+      --highlight-glow: 0 0 10px var(--highlight), 0 0 15px rgba(255, 255, 0, 0.5);
+    }
+    
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background-color: var(--darker);
+      color: white;
+      background-image: 
+        radial-gradient(circle at 50% 50%, rgba(0, 102, 204, 0.1) 0%, transparent 80%),
+        linear-gradient(to bottom, var(--darker), var(--dark));
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    
+    /* チェックポイントフォント風のタイトル */
+    .checkpoint-title {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      text-shadow: var(--glow);
+      text-transform: uppercase;
+      border-radius: 12px;
+      padding: 0.1em 0.2em;
+      background: linear-gradient(to right, var(--primary), #0099ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      position: relative;
+      display: inline-block;
+    }
+    
+    .checkpoint-title:after {
+      content: attr(data-text);
+      position: absolute;
+      left: 0;
+      top: 0;
+      z-index: -1;
+      background: linear-gradient(to right, var(--secondary), var(--primary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: blur(8px);
+      opacity: 0.7;
+    }
+    
+    .cyber-title {
+      font-family: 'Orbitron', sans-serif;
+      text-shadow: var(--glow);
+    }
+    
+    .cyber-panel {
+      background: rgba(10, 10, 32, 0.8);
+      border: 1px solid var(--primary);
+      box-shadow: var(--glow);
+      backdrop-filter: blur(5px);
+    }
+    
+    .cyber-btn {
+      background: linear-gradient(to right, var(--secondary), var(--primary));
+      border: 1px solid var(--accent);
+      font-family: 'Orbitron', sans-serif;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+    
+    .cyber-btn:hover {
+      box-shadow: var(--glow);
+      transform: translateY(-2px);
+    }
+    
+    .cyber-btn:before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: 0.5s;
+    }
+    
+    .cyber-btn:hover:before {
+      left: 100%;
+    }
+    
+    .cyber-input {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--primary);
+      color: white;
+    }
+    
+    .cyber-input:focus {
+      box-shadow: var(--glow);
+      outline: none;
+    }
+    
+    .grid-pattern {
+      background-image: linear-gradient(rgba(0, 179, 255, 0.1) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(0, 179, 255, 0.1) 1px, transparent 1px);
+      background-size: 20px 20px;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: -1;
+      pointer-events: none;
+    }
+    
+    .cyber-progress {
+      height: 10px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--primary);
+      overflow: hidden;
+    }
+    
+    .cyber-progress-bar {
+      height: 100%;
+      background: linear-gradient(to right, var(--secondary), var(--primary));
+      transition: width 0.3s;
+    }
+    
+    .option-btn {
+      transition: all 0.3s;
+    }
+    
+    .option-btn:hover {
+      transform: translateX(5px);
+    }
+    
+    .option-btn.correct {
+      background: rgba(0, 255, 100, 0.3);
+      border-color: #00ff64;
+    }
+    
+    .option-btn.incorrect {
+      background: rgba(255, 0, 80, 0.3);
+      border-color: #ff0050;
+    }
+    
+    .score-animation {
+      animation: scorePopup 0.5s ease-out;
+    }
+    
+    @keyframes scorePopup {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.5); }
+      100% { transform: scale(1); }
+    }
+    
+    /* 選択状態のスタイル */
+    .selected-item {
+      border: 2px solid var(--highlight);
+      box-shadow: var(--highlight-glow);
+      transform: translateY(-2px);
+      position: relative;
+      z-index: 1;
+    }
+    
+    .selected-item:before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      border: 2px solid var(--highlight);
+      border-radius: 0.375rem;
+      animation: pulseHighlight 1.5s infinite;
+      z-index: -1;
+    }
+    
+    @keyframes pulseHighlight {
+      0% { opacity: 0.6; }
+      50% { opacity: 1; }
+      100% { opacity: 0.6; }
+    }
+    
+    .home-btn {
+      background: rgba(0, 102, 204, 0.3);
+      border: 1px solid var(--accent);
+      transition: all 0.3s;
+    }
+    
+    .home-btn:hover {
+      background: rgba(0, 102, 204, 0.5);
+      box-shadow: var(--glow);
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-pattern"></div>
+  
+  <div class="container mx-auto px-4 py-8">
+    <!-- Main App Container -->
+    <div id="app" class="max-w-4xl mx-auto">
+      <!-- Start Screen -->
+      <div id="start-screen" class="cyber-panel p-8 rounded-lg">
+        <h1 class="checkpoint-title text-4xl md:text-5xl text-center mb-4" data-text="Geo-Histo Hack">Geo-Histo Hack</h1>
+        <p class="text-center mb-8 text-gray-300">中学社会（中1・1学期編）</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div class="cyber-panel p-4 rounded-lg">
+            <h2 class="cyber-title text-xl mb-3 text-center text-primary">学習分野</h2>
+            <div class="space-y-2">
+              <button class="category-btn cyber-btn w-full py-2 px-4 rounded-md text-left" data-category="chiri-basic">地理：地球と世界</button>
+              <button class="category-btn cyber-btn w-full py-2 px-4 rounded-md text-left" data-category="chiri-japan">地理：日本のすがた</button>
+              <button class="category-btn cyber-btn w-full py-2 px-4 rounded-md text-left" data-category="rekishi-ancient">歴史：古代文明</button>
+              <button class="category-btn cyber-btn w-full py-2 px-4 rounded-md text-left" data-category="rekishi-jomon-yayoi">歴史：日本のあけぼの</button>
+            </div>
+          </div>
+          
+          <div class="cyber-panel p-4 rounded-lg">
+            <h2 class="cyber-title text-xl mb-3 text-center text-primary">難易度</h2>
+            <div class="space-y-2">
+              <button class="difficulty-btn cyber-btn w-full py-2 px-4 rounded-md text-left" data-difficulty="standard">STANDARD (基本)</button>
+              <button class="difficulty-btn cyber-btn w-full py-2 px-4 rounded-md text-left" data-difficulty="expert">EXPERT (発展)</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="cyber-panel p-4 rounded-lg mb-8">
+          <h2 class="cyber-title text-xl mb-3 text-center text-primary">問題モード</h2>
+          <div class="space-y-2">
+            <button class="mode-btn cyber-btn w-full py-2 px-4 rounded-md text-left" data-mode="multiple-choice">選択問題</button>
+            <button class="mode-btn cyber-btn w-full py-2 px-4 rounded-md text-left" data-mode="typing">タイピング問題</button>
+            <button class="mode-btn cyber-btn w-full py-2 px-4 rounded-md text-left" data-mode="ordering">並べ替え問題</button>
+            <button class="mode-btn cyber-btn w-full py-2 px-4 rounded-md text-left" data-mode="matching">マッチング問題</button>
+          </div>
+        </div>
+        
+        <div class="text-center">
+          <button id="start-btn" class="cyber-btn py-3 px-8 rounded-md text-lg">開始</button>
+        </div>
+      </div>
+      
+      <!-- Game Screen (HTML構造は変更なし) -->
+      <div id="game-screen" class="hidden">
+        <div class="flex justify-between items-center mb-4">
+          <div class="cyber-panel px-4 py-2 rounded-md">
+            <span class="text-primary">問題:</span> <span id="question-counter">1/10</span>
+          </div>
+          <div class="cyber-panel px-4 py-2 rounded-md">
+            <span class="text-primary">スコア:</span> <span id="score">0</span>
+          </div>
+          <div class="cyber-panel px-4 py-2 rounded-md">
+            <span class="text-primary">時間:</span> <span id="timer">60</span>
+          </div>
+        </div>
+        
+        <div class="cyber-panel p-6 rounded-lg mb-4">
+          <div class="cyber-progress mb-4">
+            <div id="time-bar" class="cyber-progress-bar w-full"></div>
+          </div>
+          
+          <h2 id="question-text" class="text-xl mb-4"></h2>
+          
+          <!-- Multiple Choice Mode -->
+          <div id="multiple-choice-container" class="hidden space-y-3">
+            <div id="options-container" class="space-y-2"></div>
+          </div>
+          
+          <!-- Typing Mode -->
+          <div id="typing-container" class="hidden">
+            <input type="text" id="typing-input" class="cyber-input w-full py-2 px-4 rounded-md mb-3" placeholder="回答を入力してください...">
+            <button id="typing-submit" class="cyber-btn py-2 px-4 rounded-md">回答する</button>
+          </div>
+          
+          <!-- Ordering Mode -->
+          <div id="ordering-container" class="hidden">
+            <div id="ordering-options" class="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4"></div>
+            <div id="ordering-answer" class="border border-dashed border-primary p-4 rounded-md min-h-[100px] mb-4"></div>
+            <button id="ordering-submit" class="cyber-btn py-2 px-4 rounded-md">回答する</button>
+          </div>
+          
+          <!-- Matching Mode -->
+          <div id="matching-container" class="hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div id="matching-left" class="space-y-2"></div>
+              <div id="matching-right" class="space-y-2"></div>
+            </div>
+            <div class="text-center mt-4">
+              <button id="matching-submit" class="cyber-btn py-2 px-4 rounded-md">回答する</button>
+            </div>
+          </div>
+        </div>
+        
+        <div id="feedback-container" class="cyber-panel p-4 rounded-lg mb-4 hidden">
+          <div id="feedback-text" class="mb-2"></div>
+        </div>
+        
+        <div class="flex justify-between items-center">
+          <button class="home-btn py-2 px-4 rounded-md text-sm" id="game-home-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-1" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+            </svg>
+            トップに戻る
+          </button>
+          <button id="next-btn" class="cyber-btn py-2 px-6 rounded-md hidden">次の問題</button>
+        </div>
+      </div>
+      
+      <!-- Results Screen (HTML構造は変更なし) -->
+      <div id="results-screen" class="hidden cyber-panel p-8 rounded-lg text-center">
+        <h2 class="checkpoint-title text-3xl mb-4" data-text="クエスト完了！">クエスト完了！</h2>
+        
+        <div class="mb-6">
+          <div class="text-5xl font-bold mb-2" id="final-score">0</div>
+          <div class="text-xl mb-4">ポイント</div>
+          <div class="text-2xl mb-2" id="rank-text">ランク: S</div>
+          <div id="rank-comment" class="text-gray-300">素晴らしい！歴史マスターだ！</div>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4 mb-6">
+          <div class="cyber-panel p-3 rounded-md">
+            <div class="text-primary">正解数</div>
+            <div class="text-2xl" id="correct-count">0/10</div>
+          </div>
+          <div class="cyber-panel p-3 rounded-md">
+            <div class="text-primary">正答率</div>
+            <div class="text-2xl" id="accuracy">0%</div>
+          </div>
+        </div>
+        
+        <div class="flex justify-between items-center">
+          <button class="home-btn py-2 px-4 rounded-md text-sm" id="results-home-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-1" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+            </svg>
+            トップに戻る
+          </button>
+          <button id="restart-btn" class="cyber-btn py-3 px-8 rounded-md">もう一度挑戦</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+    // 共通問題データベース
+    const sharedQuestions = {
+      standard: { // 基本問題
+        'chiri-basic': [
+          { question: '地球の陸地と海洋の面積の割合で、より近いものはどれ？', answer: '陸3:海7', options: ['陸3:海7', '陸5:海5', '陸7:海3', '陸1:海9'] },
+          { question: '六大陸のうち、最も面積が大きい大陸は？', answer: 'ユーラシア大陸', options: ['ユーラシア大陸', 'アフリカ大陸', '北アメリカ大陸', 'オーストラリア大陸'] },
+          { question: '六大陸のうち、赤道が中央をほぼ通過する大陸は？', answer: 'アフリカ大陸', options: ['アフリカ大陸', '南アメリカ大陸', 'オーストラリア大陸', '南極大陸'] },
+          { question: '三大洋のうち、最も面積が広い海洋は？', answer: '太平洋', options: ['太平洋', '大西洋', 'インド洋', '北極海'] },
+          { question: '地球を北半球と南半球に分ける、緯度0度の線を何という？', answer: '赤道', options: ['赤道', '本初子午線', '北回帰線', '日付変更線'] },
+          { question: 'イギリスのロンドンを通る、経度0度の線を何という？', answer: '本初子午線', options: ['本初子午線', '赤道', '東経180度線', 'グリニッジ標準時'] },
+          { question: 'ある地点の赤道からの隔たりを示すものを何という？', answer: '緯度', options: ['緯度', '経度', '高度', '標高'] },
+          { question: 'ある地点の本初子午線からの隔たりを示すものを何という？', answer: '経度', options: ['経度', '緯度', '時差', '緯線'] },
+          { question: '地球が1日に1回転することを何という？', answer: '自転', options: ['自転', '公転', '回転', '周転'] },
+          { question: '地球が太陽の周りを1年で1周することを何という？', answer: '公転', options: ['公転', '自転', '年周運動', '日周運動'] },
+          { question: '世界の国境線のうち、アフリカの国境に多い、直線で引かれた国境は何をもとにしている？', answer: '緯線・経線', options: ['緯線・経線', '山脈・河川', '民族の分布', '言語の分布'] },
+          { question: '国土のまわりをすべて海に囲まれている国を何という？', answer: '海洋国（島国）', options: ['海洋国（島国）', '内陸国', '沿岸国', '半島国'] },
+          { question: '国土が海に面しておらず、他国の領土に囲まれている国を何という？', answer: '内陸国', options: ['内陸国', '海洋国', '大陸国', '諸島国'] },
+          { question: '世界の州区分のうち、日本が属している州は？', answer: 'アジア州', options: ['アジア州', 'ヨーロッパ州', 'オセアニア州', '北アメリカ州'] },
+          { question: '世界で最も多くの国が属している州は？', answer: 'アフリカ州', options: ['アフリカ州', 'アジア州', 'ヨーロッパ州', '南アメリカ州'] },
+          { question: '世界で最も人口の多い国は？（2024年時点）', answer: 'インド', options: ['インド', '中国', 'アメリカ合衆国', 'インドネシア'] },
+          { question: '世界で最も面積の大きい国は？', answer: 'ロシア連邦', options: ['ロシア連邦', 'カナダ', '中国', 'アメリカ合衆国'] },
+          { question: '時差の基準となる経度は1時間あたり何度？', answer: '15度', options: ['15度', '10度', '20度', '24度'] },
+          { question: '日本とイギリス（ロンドン）の時差は何時間？', answer: '9時間', options: ['9時間', '8時間', '10時間', '12時間'] },
+          { question: '日付変更線は、おおむね東経・西経何度線に沿って引かれている？', answer: '180度', options: ['180度', '135度', '90度', '0度'] },
+          { question: 'オーストラリアの国旗にも描かれている、イギリスの国旗の通称は？', answer: 'ユニオンジャック', options: ['ユニオンジャック', '星条旗', '日の丸', 'トリコロール'] },
+          { question: '国の面積が世界で5番目に大きい国は？', answer: 'ブラジル', options: ['ブラジル', 'オーストラリア', 'インド', 'アルゼンチン'] },
+          { question: '首都が国の内部にある独立国「バチカン市国」で知られるヨーロッパの国は？', answer: 'イタリア', options: ['イタリア', 'フランス', 'スペイン', 'ギリシャ'] },
+        ],
+        'chiri-japan': [
+          { question: '日本の標準時子午線は、東経何度に定められている？', answer: '135度', options: ['135度', '120度', '140度', '150度'] },
+          { question: '日本の標準時子午線が通る都市は？', answer: '明石市', options: ['明石市', '神戸市', '京都市', '大阪市'] },
+          { question: '日本を構成する4つの主な島のうち、最も面積が大きい島は？', answer: '本州', options: ['本州', '北海道', '九州', '四国'] },
+          { question: '日本最東端の島は？', answer: '南鳥島', options: ['南鳥島', '与那国島', '沖ノ鳥島', '択捉島'] },
+          { question: '日本最西端の島は？', answer: '与那国島', options: ['与那国島', '南鳥島', '石垣島', '西表島'] },
+          { question: '日本最南端の島は？', answer: '沖ノ鳥島', options: ['沖ノ鳥島', '与那国島', '波照間島', '南鳥島'] },
+          { question: '日本最北端の島は？', answer: '択捉島', options: ['択捉島', '宗谷岬', '礼文島', '国後島'] },
+          { question: '国の主権が及ぶ陸地を何という？', answer: '領土', options: ['領土', '領海', '領空', '国土'] },
+          { question: '領土の沿岸から12海里（約22km）までの海域を何という？', answer: '領海', options: ['領海', '排他的経済水域', '公海', '接続水域'] },
+          { question: '領土と領海の上空で、国の主権が及ぶ範囲を何という？', answer: '領空', options: ['領空', '大気圏', '成層圏', '宇宙空間'] },
+          { question: '沿岸国が水産資源や鉱産資源を利用する権利を持つ、領海の外側の水域を何という？', answer: '排他的経済水域', options: ['排他的経済水域', '公海', '大陸棚', '漁業専管水域'] },
+          { question: '排他的経済水域は、沿岸から何海里まで？', answer: '200海里', options: ['200海里', '12海里', '24海里', '100海里'] },
+          { question: '日本がロシアに対し返還を求めている4つの島を総称して何という？', answer: '北方領土', options: ['北方領土', '千島列島', '南樺太', '竹島'] },
+          { question: '北方領土に含まれない島はどれ？', answer: '奥尻島', options: ['奥尻島', '択捉島', '国後島', '歯舞群島'] },
+          { question: '日本が韓国に対し領有権を主張している、日本海にある島は？', answer: '竹島', options: ['竹島', '対馬', '尖閣諸島', '北方領土'] },
+          { question: '日本が領有権を主張している、東シナ海にある島々は？', answer: '尖閣諸島', options: ['尖閣諸島', '沖縄諸島', '先島諸島', '大東諸島'] },
+          { question: '日本の領域の大部分は、気候帯でいうと何に属する？', answer: '温帯', options: ['温帯', '熱帯', '冷帯（亜寒帯）', '乾燥帯'] },
+          { question: '北海道の大部分が属する気候帯は？', answer: '冷帯（亜寒帯）', options: ['冷帯（亜寒帯）', '温帯', '寒帯', '高山気候'] },
+          { question: '日本の地形の特徴として、国土に占める何の割合が高い？', answer: '山地', options: ['山地', '平野', '盆地', '台地'] },
+          { question: '日本の人口が集中しているのは、どのような地形？', answer: '平野', options: ['平野', '山地', '半島', '離島'] },
+          { question: '日本で最も長い川は？', answer: '信濃川', options: ['信濃川', '利根川', '石狩川', '淀川'] },
+          { question: '日本で最も大きい湖は？', answer: '琵琶湖', options: ['琵琶湖', '霞ヶ浦', 'サロマ湖', '猪苗代湖'] },
+          { question: '日本で最も高い山は？', answer: '富士山', options: ['富士山', '北岳', '奥穂高岳', '槍ヶ岳'] },
+          { question: '太平洋側を流れる暖流を何という？', answer: '黒潮（日本海流）', options: ['黒潮（日本海流）', '親潮（千島海流）', '対馬海流', 'リマン海流'] },
+          { question: '太平洋側を流れる寒流を何という？', answer: '親潮（千島海流）', options: ['親潮（千島海流）', '黒潮（日本海流）', '対馬海流', 'リマン海流'] },
+        ],
+        'rekishi-ancient': [
+          { question: '約700万年前にアフリカに現れ、直立二足歩行を始めた人類の祖先は？', answer: '猿人', options: ['猿人', '原人', '旧人', '新人'] },
+          { question: '北京原人やジャワ原人が分類される、火や言葉を使い始めた人類は？', answer: '原人', options: ['原人', '猿人', '旧人', '新人'] },
+          { question: '私たち現代人の直接の祖先にあたる人類は？', answer: '新人（ホモ・サピエンス）', options: ['新人（ホモ・サピエンス）', 'ネアンデルタール人', 'クロマニョン人', '原人'] },
+          { question: '石を打ち欠いて作った石器を何という？', answer: '打製石器', options: ['打製石器', '磨製石器', '石斧', '石鏃'] },
+          { question: '打製石器を使っていた時代を何時代という？', answer: '旧石器時代', options: ['旧石器時代', '新石器時代', '縄文時代', '青銅器時代'] },
+          { question: 'ナイル川の流域でおこり、ピラミッドや太陽暦が作られた文明は？', answer: 'エジプト文明', options: ['エジプト文明', 'メソポタミア文明', 'インダス文明', '中国文明'] },
+          { question: 'チグリス川・ユーフラテス川の流域でおこり、楔形文字が使われた文明は？', answer: 'メソポタミア文明', options: ['メソポタミア文明', 'エジプト文明', 'インダス文明', '黄河文明'] },
+          { question: 'インダス川流域でおこり、モヘンジョダロなどの計画的な都市がつくられた文明は？', answer: 'インダス文明', options: ['インダス文明', 'エジプト文明', 'メソポタミア文明', 'ガンジス文明'] },
+          { question: '黄河の流域でおこり、甲骨文字や青銅器が作られた文明は？', answer: '中国文明', options: ['中国文明', '長江文明', '遼河文明', 'モンゴル文明'] },
+          { question: 'エジプト文明で使われた、物の形をかたどった文字は？', answer: '象形文字（ヒエログリフ）', options: ['象形文字（ヒエログリフ）', '楔形文字', '甲骨文字', 'アルファベット'] },
+          { question: 'メソポタミア文明で使われた、粘土板に刻まれた文字は？', answer: '楔形文字', options: ['楔形文字', '象形文字', '甲骨文字', 'インダス文字'] },
+          { question: '古代中国（殷）で、占いの結果を記録するために亀の甲羅や動物の骨に刻まれた文字は？', answer: '甲骨文字', options: ['甲骨文字', '金文', '篆書', '漢字'] },
+          { question: '紀元前18世紀ごろ、メソポタミアで制定された「目には目を、歯には歯を」で知られる法律は？', answer: 'ハンムラビ法典', options: ['ハンムラビ法典', 'モーセの十戒', 'ローマ法', 'マヌ法典'] },
+          { question: 'インドで生まれ、釈迦（シャカ）が開いた宗教は？', answer: '仏教', options: ['仏教', 'キリスト教', 'イスラム教', 'ヒンドゥー教'] },
+          { question: 'パレスチナ地方で生まれ、イエスが開いた宗教は？', answer: 'キリスト教', options: ['キリスト教', '仏教', 'イスラム教', 'ユダヤ教'] },
+          { question: 'アラビア半島で生まれ、ムハンマドが開いた宗教は？', answer: 'イスラム教', options: ['イスラム教', 'キリスト教', '仏教', 'ゾロアスター教'] },
+          { question: 'イスラム教の聖典を何という？', answer: 'コーラン', options: ['コーラン', '聖書', '仏典', 'ヴェーダ'] },
+          { question: '古代ギリシャで栄えたアテネなどの都市国家を何という？', answer: 'ポリス', options: ['ポリス', 'エンポリウム', 'コロッセオ', 'キヴィタス'] },
+          { question: '紀元前6世紀ごろ、中国で孔子らが説いた道徳的な教えを何という？', answer: '儒教', options: ['儒教', '道教', '仏教', '法家'] },
+          { question: '万里の長城を修築し、中国を初めて統一した王朝は？', answer: '秦', options: ['秦', '漢', '周', '殷'] },
+          { question: 'ヨーロッパからアジアまで広がる大帝国を築いた、古代ギリシャの王は？', answer: 'アレクサンドロス大王', options: ['アレクサンドロス大王', 'カエサル', 'アウグストゥス', 'ペリクレス'] },
+          { question: '地中海周辺を支配した、古代の大帝国は？', answer: 'ローマ帝国', options: ['ローマ帝国', 'ペルシャ帝国', 'マケドニア王国', 'エジプト新王国'] },
+          { question: '中央アジアとヨーロッパを結んだ古代の交易路を何という？', answer: 'シルクロード（絹の道）', options: ['シルクロード（絹の道）', '海の道', '塩の道', '香辛料の道'] },
+        ],
+        'rekishi-jomon-yayoi': [
+          { question: '表面に縄目の文様があり、厚手で黒褐色の土器は？', answer: '縄文土器', options: ['縄文土器', '弥生土器', '土師器', '須恵器'] },
+          { question: '人々が狩りや採集を行い、縄文土器を使っていた時代は？', answer: '縄文時代', options: ['縄文時代', '旧石器時代', '弥生時代', '古墳時代'] },
+          { question: '縄文時代の人々が住んでいた、地面を掘り下げた住居は？', answer: '竪穴住居', options: ['竪穴住居', '高床倉庫', '平地住居', '洞窟'] },
+          { question: '縄文時代に見られる、食べ物の残りかすなどを捨てた場所は？', answer: '貝塚', options: ['貝塚', '古墳', '環濠', 'ゴミ捨て場'] },
+          { question: '縄文時代の女性をかたどったとされる、魔よけや豊かな生産を祈るために作られた土の人形は？', answer: '土偶', options: ['土偶', '埴輪', '銅鐸', '土製品'] },
+      	  { question: '青森県で発見された、縄文時代の大規模な集落の遺跡は？', answer: '三内丸山遺跡', options: ['三内丸山遺跡', '吉野ヶ里遺跡', '岩宿遺跡', '登呂遺跡'] },
+          { question: '大陸から九州北部に伝わった、主食となる新しい農業は？', answer: '稲作', options: ['稲作', '畑作', '麦作', '雑穀栽培'] },
+          { question: '薄手で赤褐色、高温で焼かれた硬い土器は？', answer: '弥生土器', options: ['弥生土器', '縄文土器', '土師器', '須恵器'] },
+          { question: '稲作が始まり、弥生土器や金属器が使われるようになった時代は？', answer: '弥生時代', options: ['弥生時代', '縄文時代', '古墳時代', '旧石器時代'] },
+          { question: '弥生時代、収穫した稲を保存するために建てられた、床の高い建物は？', answer: '高床倉庫', options: ['高床倉庫', '竪穴住居', '平地式倉庫', '掘立柱建物'] },
+          { question: '弥生時代に使われた、米の収穫のための道具は？', answer: '石包丁', options: ['石包丁', '石斧', '石皿', '鉄鎌'] },
+          { question: '弥生時代に伝わった金属器のうち、武器や道具として実用的に使われたのは？', answer: '鉄器', options: ['鉄器', '青銅器', '金製品', '銀製品'] },
+          { question: '弥生時代に伝わった金属器のうち、主に祭りのための宝物として使われたのは？', answer: '青銅器', options: ['青銅器', '鉄器', '銅銭', '金印'] },
+          { question: '佐賀県で発見された、周りに濠や土塁をめぐらせた弥生時代の大きな集落の遺跡は？', answer: '吉野ヶ里遺跡', options: ['吉野ヶ里遺跡', '三内丸山遺跡', '登呂遺跡', '唐古・鍵遺跡'] },
+          { question: '弥生時代に、有力な豪族が支配するようになった政治的なまとまりを何という？', answer: 'クニ', options: ['クニ', 'ムラ', '藩', '国家'] },
+          { question: '中国の歴史書『漢書』地理志に記述が見られる、紀元前1世紀ごろの日本の呼び名は？', answer: '倭', options: ['倭', '日本', '大和', '扶桑'] },
+          { question: '現在の福岡県で出土した、「漢委奴国王」と刻まれた金印を、当時の中国の皇帝から授けられたのはどのクニの王か？', answer: '奴国', options: ['奴国', '伊都国', '邪馬台国', '投馬国'] },
+          { question: '中国の歴史書『魏志』倭人伝に記されている、3世紀ごろに女王が治めていた国は？', answer: '邪馬台国', options: ['邪馬台国', '奴国', '出雲国', '狗奴国'] },
+          { question: '邪馬台国を治めていたとされる女王は誰？', answer: '卑弥コ', options: ['卑弥コ', '台与', '神功皇后', '天照大神'] },
+          { question: '卑弥コが使いを送ったとされる、当時の中国の王朝は？', answer: '魏', options: ['魏', '漢', '呉', '蜀'] },
+          { question: '卑弥コが魏の皇帝から授けられた称号は？', answer: '親魏倭王', options: ['親魏倭王', '漢委奴国王', '倭国大王', '安東大将軍倭国王'] },
+          { question: '静岡県で発見された、弥生時代後期の水田や住居の跡が残る遺跡は？', answer: '登呂遺跡', options: ['登呂遺跡', '三内丸山遺跡', '吉野ヶ里遺跡', '板付遺跡'] },
+        ]
+      },
+      expert: { // 発展問題
+        'chiri-basic': [
+          { question: '地球の全周は約何km？', answer: '約4万km', options: ['約4万km', '約1万km', '約10万km', '約2万km'] },
+          { question: '地球儀や世界地図で、緯線と経線が作る網目を何という？', answer: '経緯線網', options: ['経緯線網', '座標', 'グリッド', 'メッシュ'] },
+          { question: '中心からの距離と方位が正しく表されている地図の図法は？', answer: '正距方位図法', options: ['正距方位図法', 'メルカトル図法', 'モルワイデ図法', 'サンソン図法'] },
+          { question: '面積が正しく表されている地図の図法は？', answer: 'モルワイデ図法', options: ['モルワイデ図法', '正距方位図法', 'メルカトル図法', 'ミラー図法'] },
+          { question: '航海図として利用される、角度が正しく表されている図法は？', answer: 'メルカトル図法', options: ['メルカトル図法', '正距方位図法', 'モルワイデ図法', '正角図法'] },
+          { question: 'メルカトル図法で描かれた地図の大きな欠点は？', answer: '高緯度ほど面積が拡大される', options: ['高緯度ほど面積が拡大される', '低緯度ほど面積が拡大される', '距離が不正確', '方位が不正確'] },
+          { question: '東京から見て、地球のほぼ真裏に位置する都市は？', answer: 'ブエノスアイレス', options: ['ブエノスアイレス', 'リオデジャネイロ', 'サンパウロ', 'リマ'] },
+          { question: '国際連合の本部がある、アメリカ合衆国の都市は？', answer: 'ニューヨーク', options: ['ニューヨーク', 'ワシントンD.C.', 'ロサンゼルス', 'シカゴ'] },
+          { question: '世界には約いくつの国と地域がある？', answer: '190あまり', options: ['190あまり', '150あまり', '250あまり', '100あまり'] },
+          { question: '国土の大部分が熱帯に属する大陸は？', answer: 'アフリカ大陸', options: ['アフリカ大陸', '南アメリカ大陸', 'オーストラリア大陸', 'アジア大陸'] },
+          { question: 'サマータイム（夏時間）を導入する主な目的は？', answer: '省エネルギー', options: ['省エネルギー', '労働時間の短縮', '余暇の充実', '国際標準への対応'] },
+          { question: '東経135度の地点が正午のとき、東経150度の地点の時刻は？', answer: '午後1時', options: ['午後1時', '午前11時', '正午', '午後2時'] },
+          { question: '西経30度の地点が午前10時のとき、ロンドン（0度）の時刻は？', answer: '正午', options: ['正午', '午前8時', '午後2時', '午前11時'] },
+          { question: '日付変更線を西から東へ越えるとき、日付はどうなる？', answer: '1日戻る', options: ['1日戻る', '1日進む', '変わらない', '半日進む'] },
+          { question: 'EU（ヨーロッパ連合）のように、国家が経済や政治で協力しあう地域的なまとまりを何というか？', answer: '地域統合', options: ['地域統合', '国際連合', '国家連合', '経済ブロック'] },
+          { question: '世界の言語で、最も話者数が多いのは？', answer: '英語', options: ['英語', '中国語', 'スペイン語', 'ヒンディー語'] },
+          { question: '北極点を中心とした正距方位図法で、ユーラシア大陸の外周はどのように描かれる？', answer: '円形', options: ['円形', '直線', '波線', '描かれない'] },
+          { question: '海に面していても、港に適した地形がなく、外国との貿易が不便な国を何というか？', answer: '準内陸国', options: ['準内陸国', '沿岸国', '半島国', '海洋国'] },
+          { question: 'グリーンランドが属する国はどこ？', answer: 'デンマーク', options: ['デンマーク', 'カナダ', 'アイスランド', 'ノルウェー'] },
+          { question: '世界で最も国境線を長く接している国の組み合わせは？', answer: 'アメリカとカナダ', options: ['アメリカとカナダ', 'ロシアと中国', 'ブラジルとアルゼンチン', 'インドとパキスタン'] },
+        ],
+        'chiri-japan': [
+          { question: '日本の領土・領海・領空を合わせて何というか？', answer: '領域', options: ['領域', '国土', '主権範囲', '領分'] },
+          { question: '日本の排他的経済水域の面積は世界で何番目に広い？', answer: '第6位', options: ['第6位', '第1位', '第10位', '第3位'] },
+          { question: '沖ノ鳥島が満潮時に沈まないように、日本が行っていることは？', answer: '護岸工事', options: ['護岸工事', '埋め立て', '人工島の建設', '灯台の設置'] },
+          { question: '日本の領域の範囲を定めている国際的な法律の取り決めは？', answer: '国連海洋法条約', options: ['国連海洋法条約', '領海法', '国際司法裁判所規定', 'サンフランシスコ平和条約'] },
+          { question: '北方領土が属する都道府県は？', answer: '北海道', options: ['北海道', '青森県', '東京都', '沖縄県'] },
+          { question: '尖閣諸島が属する都道府県は？', answer: '沖縄県', options: ['沖縄県', '鹿児島県', '東京都', '長崎県'] },
+          { question: '日本の人口は約何人？（2024年時点）', answer: '約1億2000万人', options: ['約1億2000万人', '約1億人', '約1億5000万人', '約9000万人'] },
+          { question: '日本の人口ピラミッドはどのような形？', answer: 'つぼ型', options: ['つぼ型', '富士山型', '星型', '釣鐘型'] },
+          { question: '日本の人口問題で、特に深刻なのはどのような状態？', answer: '少子高齢化', options: ['少子高齢化', '人口爆発', '人口の都市集中', '過疎化'] },
+          { question: '日本アルプス（飛騨・木曽・赤石山脈）があるのは本州のどの地方？', answer: '中部地方', options: ['中部地方', '東北地方', '関東地方', '近畿地方'] },
+          { question: '日本で地震が多い理由の一つである、地球の表面を覆う十数枚の岩盤を何という？', answer: 'プレート', options: ['プレート', 'マントル', '地殻', '岩石圏'] },
+          { question: '日本の気候に大きな影響を与える、夏と冬で風向きが変わる風を何という？', answer: '季節風（モンスーン）', options: ['季節風（モンスーン）', '偏西風', '貿易風', '台風'] },
+          { question: '冬に日本海側で大雪が降る原因となる季節風は、どの方向から吹く？', answer: '北西', options: ['北西', '南東', '南西', '北東'] },
+          { question: '梅雨（ばいう）の時期に、日本の南岸に停滞する前線は？', answer: '梅雨前線', options: ['梅雨前線', '秋雨前線', '寒冷前線', '温暖前線'] },
+          { question: '夏から秋にかけて日本に接近・上陸し、大雨や強風をもたらす熱帯低気圧は？', answer: '台風', options: ['台風', 'ハリケーン', 'サイクロン', '竜巻'] },
+          { question: '黒潮と親潮が出会う三陸沖などの海域を何という？', answer: '潮目（潮境）', options: ['潮目（潮境）', '好漁場', '大陸棚', 'バンク'] },
+          { question: '日本の都道府県で、最も面積が大きいのは？', answer: '北海道', options: ['北海道', '岩手県', '福島県', '長野県'] },
+          { question: '日本の都道府県で、最も面積が小さいのは？', answer: '香川県', options: ['香川県', '大阪府', '東京都', '沖縄県'] },
+          { question: '東京・名古屋・大阪を結ぶ地域を何と呼ぶ？', answer: '三大都市圏', options: ['三大都市圏', '東海道メガロポリス', '太平洋ベルト', '京浜阪神'] },
+          { question: '日本の食料自給率はどのくらい？（カロリーベース、2022年度）', answer: '約38%', options: ['約38%', '約50%', '約72%', '約15%'] },
+        ],
+        'rekishi-ancient': [
+          { question: '人類が打製石器を使い、狩りや採集をしていた時代を何という？', answer: '旧石器時代', options: ['旧石器時代', '新石器時代', '中石器時代', '石器時代'] },
+          { question: '農耕や牧畜が始まり、人々が定住するようになった社会の変化を何と呼ぶ？', answer: '食料生産革命', options: ['食料生産革命', '農業革命', '産業革命', '都市革命'] },
+          { question: 'エジプトの王の称号で、「大きな家」を意味する言葉は？', answer: 'ファラオ', options: ['ファラオ', 'スルタン', 'エンペラー', 'ツァーリ'] },
+          { question: '古代ギリシャのアテネで行われた、市民が政治に参加する仕組みは？', answer: '直接民主制', options: ['直接民主制', '間接民主制', '貴族制', '王政'] },
+          { question: '古代インドのアーリヤ人社会で作られた、厳格な身分制度は？', answer: 'カースト制度', options: ['カースト制度', '封建制度', '奴隷制度', 'クシャトリヤ'] },
+          { question: 'カースト制度の頂点に位置する、神官や司祭の階級は？', answer: 'バラモン', options: ['バラモン', 'クシャトリヤ', 'ヴァイシャ', 'シュードラ'] },
+          { question: '釈迦（ゴータマ・シッダールタ）が説いた、苦しみから解放されるための教えの核心は？', answer: '輪廻転生からの解脱', options: ['輪廻転生からの解脱', '唯一神への信仰', '最後の審判', '魂の不滅'] },
+          { question: 'キリスト教の聖典は何？', answer: '聖書', options: ['聖書', 'コーラン', '仏典', 'ヴェーダ'] },
+          { question: 'イスラム教徒が守るべき五つの義務「五行」に含まれないものは？', answer: '偶像崇拝', options: ['偶像崇拝', '信仰告白', '礼拝', '断食'] },
+          { question: '中国の周王朝の時代に生まれた、天下は天から託された者が治めるという政治思想は？', answer: '天命思想', options: ['天命思想', '王道政治', '覇道', '徳治主義'] },
+          { question: '中国の春秋・戦国時代に現れた、諸子百家の一つで、厳格な法による統治を主張した学派は？', answer: '法家', options: ['法家', '儒家', '道家', '墨家'] },
+          { question: '始皇帝が行った、思想統制策で、医学や占い以外の書物を焼き、学者を生き埋めにした事件は？', answer: '焚書・坑儒', options: ['焚書・坑儒', '文字の獄', '文化大革命', '士類の禍'] },
+          { question: 'ローマ帝国が最も繁栄した「パクス・ロマーナ（ローマの平和）」の時代を築いた最初の皇帝は？', answer: 'アウグストゥス', options: ['アウグストゥス', 'カエサル', 'ネロ', 'コンスタンティヌス'] },
+          { question: '古代ローマで、剣闘士や猛獣の戦いが行われた円形闘技場を何という？', answer: 'コロッセウム', options: ['コロッセウム', 'パンテオン', 'フォルム', '水道橋'] },
+          { question: '313年、ローマ皇帝コンスタンティヌスがキリスト教を公認した命令は？', answer: 'ミラノ勅令', options: ['ミラノ勅令', 'ニケーア公会議', 'テオドシウス勅令', '帝国の東西分裂'] },
+          { question: '漢の時代に、武帝が匈奴を討つために西域へ派遣した人物は？', answer: '張騫', options: ['張騫', '班超', '甘英', '玄奘'] },
+          { question: '紙が発明されたとされる、中国の王朝は？', answer: '後漢', options: ['後漢', '前漢', '秦', '唐'] },
+          { question: 'ササン朝ペルシアで国教とされた、光と闇の二元論を特徴とする宗教は？', answer: 'ゾロアスター教', options: ['ゾロアスター教', 'マニ教', 'ミトラ教', 'イスラム教'] },
+        ],
+        'rekishi-jomon-yayoi': [
+          { question: '群馬県で発見され、日本の旧石器時代の存在を初めて証明した遺跡は？', answer: '岩宿遺跡', options: ['岩宿遺跡', '三内丸山遺跡', '野尻湖遺跡', '浜北遺跡'] },
+          { question: '縄文時代の、あらゆる自然物や自然現象に霊的な力（アニマ）が宿ると考える信仰は？', answer: 'アニミズム', options: ['アニミズム', 'シャーマニズム', 'トーテミズム', '多神教'] },
+          { question: '縄文時代の終わりごろに、大陸から伝わった新しい農業技術は何？', answer: '水稲耕作', options: ['水稲耕作', '畑作農業', '焼畑農業', '牧畜'] },
+      	  { question: '弥生時代の、敵の侵入を防ぐために集落の周りに掘られた溝を何という？', answer: '環濠', options: ['環濠', '土塁', '城壁', '堀'] },
+          { question: '弥生時代に使われた青銅器のうち、近畿地方で多く出土する釣鐘状の祭器は？', answer: '銅鐸', options: ['銅鐸', '銅鏡', '銅剣', '銅矛'] },
+          { question: '弥生時代に使われた青銅器のうち、九州北部で多く出土する武器型の祭器は？', answer: '銅矛・銅戈', options: ['銅矛・銅戈', '銅鐸', '銅鏡', '銅剣'] },
+          { question: '中国の歴史書『後漢書』東夷伝に記されている、倭の奴国王が後漢の光武帝に使いを送ったのは西暦何年？', answer: '57年', options: ['57年', '107年', '239年', '478年'] },
+          { question: '邪馬台国の所在地について、有力とされる二つの説は？', answer: '近畿説と九州説', options: ['近畿説と九州説', '関東説と中国説', '四国説と東北説', '出雲説と吉備説'] },
+          { question: '『魏志』倭人伝によると、卑弥コは何を用いてクニを治めていたとされる？', answer: '鬼道（まじない）', options: ['鬼道（まじない）', '法律', '軍事力', '儒教'] },
+          { question: '卑弥コが魏に使いを送ったのは西暦何年？', answer: '239年', options: ['239年', '57年', '339年', '139年'] },
+          { question: '卑弥コの死後、邪馬台国の王になったとされる13歳の少女は？', answer: '台与（壱与）', options: ['台与（壱与）', '卑弥コ', '神功皇后', '持統天皇'] },
+          { question: '近畿地方を中心に、3世紀後半から現れるようになった、王や豪族の墓を何という？', answer: '古墳', options: ['古墳', '貝塚', '支石墓', '墳丘墓'] },
+          { question: '古墳の中でも、日本独特の鍵穴の形をした巨大な古墳を何という？', answer: '前方後円墳', options: ['前方後円墳', '円墳', '方墳', '帆立貝形古墳'] },
+          { question: '古墳の周りに並べられた、人や馬の形をした素焼きの土製品は？', answer: '埴輪', options: ['埴輪', '土偶', '銅鐸', '土師器'] },
+          { question: '古墳が盛んに造られた時代を何時代という？', answer: '古墳時代', options: ['古墳時代', '弥生時代', '飛鳥時代', '奈良時代'] },
+          { question: '近畿地方の有力な豪族たちが連合して作った、初期の日本の政治権力を何というか？', answer: 'ヤマト政権（大和朝廷）', options: ['ヤマト政権（大和朝廷）', '出雲政権', '吉備政権', '九州王朝'] },
+          { question: 'ヤマト政権の王は何と呼ばれた？', answer: '大王（おおきみ）', options: ['大王（おおきみ）', '天皇', '将軍', '国王'] },
+          { question: '中国や朝鮮半島から、進んだ技術や文化を伝えた人々を何というか？', answer: '渡来人', options: ['渡来人', '帰化人', '移民', '外国人'] },
+          { question: '渡来人が伝えた、高温で焼かれた硬質の土器を何という？', answer: '須恵器', options: ['須恵器', '土師器', '弥生土器', '縄文土器'] },
+          { question: '5世紀に、倭の五王が使いを送り、称号を求めた中国の王朝は？', answer: '南朝（宋）', options: ['南朝（宋）', '北朝（北魏）', '晋', '隋'] },
+        ]
+      }
+    };
+
+    // EXPERT用の並べ替え・マッチング問題
+    const expertSpecialModes = {
+      'chiri-basic': {
+        ordering: [
+          { question: '次の大陸を面積の大きい順に並べ替えよ。', options: ['ユーラシア大陸', 'アフリカ大陸', '北アメリカ大陸', '南アメリカ大陸', 'オーストラリア大陸'], answer: ['ユーラシア大陸', 'アフリカ大陸', '北アメリカ大陸', '南アメリカ大陸', 'オーストラリア大陸'] },
+          { question: '次の大洋を面積の大きい順に並べ替えよ。', options: ['太平洋', '大西洋', 'インド洋'], answer: ['太平洋', '大西洋', 'インド洋'] },
+        ],
+        matching: [
+          { question: '次の州とそれに属する国の組み合わせとして正しいものを選べ。', pairs: [ { term: 'アジア州', definition: 'インド' }, { term: 'ヨーロッパ州', definition: 'イタリア' }, { term: 'アフリカ州', definition: 'エジプト' }, { term: '南アメリカ州', definition: 'ブラジル' } ] },
+          { question: '次の図法と特徴の組み合わせとして正しいものを選べ。', pairs: [ { term: '正距方位図法', definition: '中心からの距離と方位が正しい' }, { term: 'メルカトル図法', definition: '角度が正しく、航海図に使われる' }, { term: 'モルワイデ図法', definition: '面積が正しく、分布図に使われる' } ] },
+        ]
+      },
+      'chiri-japan': {
+        ordering: [
+          { question: '次の島を面積の大きい順に並べ替えよ。', options: ['本州', '北海道', '九州', '四国'], answer: ['本州', '北海道', '九州', '四国'] },
+          { question: '次の都市を、おおよそ北にある順に並べ替えよ。', options: ['札幌', '東京', '大阪', '福岡'], answer: ['札幌', '東京', '大阪', '福岡'] },
+        ],
+        matching: [
+          { question: '次の日本の端の島と、それが属する都道府県の組み合わせとして正しいものを選べ。', pairs: [ { term: '択捉島（最北端）', definition: '北海道' }, { term: '南鳥島（最東端）', definition: '東京都' }, { term: '与那国島（最西端）', definition: '沖縄県' }, { term: '沖ノ鳥島（最南端）', definition: '東京都' } ] },
+          { question: '次の領土問題と、関連する国・地域の組み合わせとして正しいものを選べ。', pairs: [ { term: '北方領土', definition: 'ロシア' }, { term: '竹島', definition: '韓国' }, { term: '尖閣諸島', definition: '中国・台湾' } ] },
+        ]
+      },
+      'rekishi-ancient': {
+        ordering: [
+          { question: '次の人類を、出現したのが古い順に並べ替えよ。', options: ['猿人', '原人', '新人'], answer: ['猿人', '原人', '新人'] },
+          { question: '次の出来事を、起こったのが古い順に並べ替えよ。', options: ['農耕・牧畜の開始', '都市国家の成立', '鉄器の使用開始', '帝国の出現'], answer: ['農耕・牧畜の開始', '都市国家の成立', '鉄器の使用開始', '帝国の出現'] },
+        ],
+        matching: [
+          { question: '次の古代文明と、それが生まれた川の組み合わせとして正しいものを選べ。', pairs: [ { term: 'エジプト文明', definition: 'ナイル川' }, { term: 'メソポタミア文明', definition: 'チグリス川・ユーフラテス川' }, { term: 'インダス文明', definition: 'インダス川' }, { term: '中国文明', definition: '黄河' } ] },
+          { question: '次の宗教と、その開祖の組み合わせとして正しいものを選べ。', pairs: [ { term: '仏教', definition: '釈迦' }, { term: 'キリスト教', definition: 'イエス' }, { term: 'イスラム教', definition: 'ムハンマド' }, { term: '儒教', definition: '孔子' } ] },
+        ]
+      },
+      'rekishi-jomon-yayoi': {
+        ordering: [
+          { question: '次の時代を、古い順に並べ替えよ。', options: ['旧石器時代', '縄文時代', '弥生時代', '古墳時代'], answer: ['旧石器時代', '縄文時代', '弥生時代', '古墳時代'] },
+          { question: '次の出来事を、起こったのが古い順に並べ替えよ。', options: ['稲作の伝来', '奴国が金印を授かる', '卑弥コが魏に使いを送る', 'ヤマト政権の成立'], answer: ['稲作の伝来', '奴国が金印を授かる', '卑弥コが魏に使いを送る', 'ヤマト政権の成立'] },
+        ],
+        matching: [
+          { question: '次の遺跡と、それが属する時代の組み合わせとして正しいものを選べ。', pairs: [ { term: '岩宿遺跡', definition: '旧石器時代' }, { term: '三内丸山遺跡', definition: '縄文時代' }, { term: '吉野ヶ里遺跡', definition: '弥生時代' } ] },
+          { question: '次の歴史書と、そこに書かれている倭（日本）に関する内容の組み合わせとして正しいものを選べ。', pairs: [ { term: '『漢書』地理志', definition: '倭人が定期的に使いを送ってきた' }, { term: '『後漢書』東夷伝', definition: '奴国王が金印を授かった' }, { term: '『魏志』倭人伝', definition: '邪馬台国の女王卑弥コが使いを送った' } ] },
+        ]
+      },
+    };
+
+    // --- ここから下のJavaScriptは、元のプログラムと同じです ---
+    
+    // データベース（ゲーム用）
+    const questionDatabase = {};
+
+    // 共通問題から各モード用の問題を生成
+    function populateQuestionsFromShared() {
+      for (const difficulty in sharedQuestions) {
+        questionDatabase[difficulty] = {};
+        for (const category in sharedQuestions[difficulty]) {
+          questionDatabase[difficulty][category] = {
+            'multiple-choice': sharedQuestions[difficulty][category].map(q => ({ ...q })),
+            'typing': sharedQuestions[difficulty][category].map(q => ({ question: q.question, answer: q.answer })),
+            'ordering': expertSpecialModes[category]?.ordering || [],
+            'matching': expertSpecialModes[category]?.matching || []
+          };
+        }
+      }
+    }
+
+    // 初期化
+    populateQuestionsFromShared();
+
+    // ゲーム状態
+    let gameState = {
+      category: null,
+      difficulty: null,
+      mode: null,
+      questions: [],
+      currentQuestionIndex: 0,
+      score: 0,
+      correctAnswers: 0,
+      timeLeft: 60,
+      timerInterval: null,
+      selectedOptions: [], // For ordering
+      matchingSelections: { left: null, right: null } // For matching
+    };
+
+    // DOM要素
+    const startScreen = document.getElementById('start-screen');
+    const gameScreen = document.getElementById('game-screen');
+    const resultsScreen = document.getElementById('results-screen');
+    const questionText = document.getElementById('question-text');
+    const questionCounter = document.getElementById('question-counter');
+    const scoreDisplay = document.getElementById('score');
+    const timerDisplay = document.getElementById('timer');
+    const timeBar = document.getElementById('time-bar');
+    const feedbackContainer = document.getElementById('feedback-container');
+    const feedbackText = document.getElementById('feedback-text');
+    const nextBtn = document.getElementById('next-btn');
+    const multipleChoiceContainer = document.getElementById('multiple-choice-container');
+    const typingContainer = document.getElementById('typing-container');
+    const orderingContainer = document.getElementById('ordering-container');
+    const matchingContainer = document.getElementById('matching-container');
+    const finalScore = document.getElementById('final-score');
+    const rankText = document.getElementById('rank-text');
+    const rankComment = document.getElementById('rank-comment');
+    const correctCount = document.getElementById('correct-count');
+    const accuracyDisplay = document.getElementById('accuracy');
+
+    // イベントリスナー
+    document.querySelectorAll('.category-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('selected-item'));
+        btn.classList.add('selected-item');
+        gameState.category = btn.dataset.category;
+      });
+    });
+
+    document.querySelectorAll('.difficulty-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('selected-item'));
+        btn.classList.add('selected-item');
+        gameState.difficulty = btn.dataset.difficulty;
+      });
+    });
+
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected-item'));
+        btn.classList.add('selected-item');
+        gameState.mode = btn.dataset.mode;
+      });
+    });
+
+    document.getElementById('start-btn').addEventListener('click', startGame);
+    nextBtn.addEventListener('click', nextQuestion);
+    document.getElementById('restart-btn').addEventListener('click', returnToHome);
+    document.getElementById('game-home-btn').addEventListener('click', returnToHome);
+    document.getElementById('results-home-btn').addEventListener('click', returnToHome);
+    document.getElementById('typing-submit').addEventListener('click', checkTypingAnswer);
+    document.getElementById('ordering-submit').addEventListener('click', checkOrderingAnswer);
+    document.getElementById('matching-submit').addEventListener('click', checkMatchingAnswer);
+    document.getElementById('typing-input').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') checkTypingAnswer();
+    });
+
+    function returnToHome() {
+      clearInterval(gameState.timerInterval);
+      gameScreen.classList.add('hidden');
+      resultsScreen.classList.add('hidden');
+      startScreen.classList.remove('hidden');
+      gameState.category = null;
+      gameState.difficulty = null;
+      gameState.mode = null;
+      document.querySelectorAll('.selected-item').forEach(btn => btn.classList.remove('selected-item'));
+    }
+
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function startGame() {
+      if (!gameState.category || !gameState.difficulty || !gameState.mode) {
+        alert('分野、難易度、モードをすべて選択してください');
+        return;
+      }
+      
+      const availableQuestions = questionDatabase[gameState.difficulty]?.[gameState.category]?.[gameState.mode];
+      if (!availableQuestions || availableQuestions.length === 0) {
+        alert('この組み合わせの問題はありません。EXPERTの並べ替え・マッチングをお試しください。');
+        return;
+      }
+      
+      gameState.questions = shuffleArray([...availableQuestions]).slice(0, 10);
+      if (gameState.questions.length === 0) {
+        alert('この組み合わせの問題はありません。');
+        return;
+      }
+
+      gameState.currentQuestionIndex = 0;
+      gameState.score = 0;
+      gameState.correctAnswers = 0;
+      gameState.timeLeft = 60;
+      scoreDisplay.textContent = 0;
+      
+      startScreen.classList.add('hidden');
+      resultsScreen.classList.add('hidden');
+      gameScreen.classList.remove('hidden');
+      
+      displayQuestion();
+      startTimer();
+    }
+
+    function displayQuestion() {
+      if (gameState.currentQuestionIndex >= gameState.questions.length) {
+        endGame();
+        return;
+      }
+
+      const currentQuestion = gameState.questions[gameState.currentQuestionIndex];
+      questionText.textContent = `Q${gameState.currentQuestionIndex + 1}: ${currentQuestion.question}`;
+      questionCounter.textContent = `${gameState.currentQuestionIndex + 1}/${gameState.questions.length}`;
+      feedbackContainer.classList.add('hidden');
+      nextBtn.classList.add('hidden');
+      
+      hideAllModeContainers();
+      
+      switch (gameState.mode) {
+        case 'multiple-choice': displayMultipleChoice(currentQuestion); break;
+        case 'typing': displayTyping(); break;
+        case 'ordering': displayOrdering(currentQuestion); break;
+        case 'matching': displayMatching(currentQuestion); break;
+      }
+    }
+
+    function hideAllModeContainers() {
+      [multipleChoiceContainer, typingContainer, orderingContainer, matchingContainer].forEach(c => c.classList.add('hidden'));
+    }
+
+    function displayMultipleChoice(question) {
+      multipleChoiceContainer.classList.remove('hidden');
+      const optionsContainer = document.getElementById('options-container');
+      optionsContainer.innerHTML = '';
+      const shuffledOptions = shuffleArray([...question.options]);
+      
+      shuffledOptions.forEach(option => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn cyber-btn w-full py-3 px-4 rounded-md text-left';
+        btn.textContent = option;
+        btn.addEventListener('click', () => checkMultipleChoiceAnswer(option, btn), { once: true });
+        optionsContainer.appendChild(btn);
+      });
+    }
+
+    function displayTyping() {
+      typingContainer.classList.remove('hidden');
+      const input = document.getElementById('typing-input');
+      input.value = '';
+      input.disabled = false;
+      input.focus();
+      document.getElementById('typing-submit').disabled = false;
+    }
+
+    function displayOrdering(question) {
+      orderingContainer.classList.remove('hidden');
+      const optionsContainer = document.getElementById('ordering-options');
+      const answerContainer = document.getElementById('ordering-answer');
+      optionsContainer.innerHTML = '';
+      answerContainer.innerHTML = '';
+      gameState.selectedOptions = [];
+      const shuffledOptions = shuffleArray([...question.options]);
+
+      shuffledOptions.forEach(option => {
+        const btn = document.createElement('button');
+        btn.className = 'ordering-option cyber-btn py-2 px-3 rounded-md text-center cursor-pointer';
+        btn.textContent = option;
+        btn.onclick = () => {
+          if (btn.parentElement === optionsContainer) {
+            answerContainer.appendChild(btn);
+          } else {
+            optionsContainer.appendChild(btn);
+          }
+        };
+        optionsContainer.appendChild(btn);
+      });
+      document.getElementById('ordering-submit').disabled = false;
+    }
+
+    function displayMatching(question) {
+        matchingContainer.classList.remove('hidden');
+        const leftContainer = document.getElementById('matching-left');
+        const rightContainer = document.getElementById('matching-right');
+        leftContainer.innerHTML = '';
+        rightContainer.innerHTML = '';
+        gameState.matchingSelections = { left: null, right: null };
+
+        const terms = shuffleArray(question.pairs.map(p => p.term));
+        const definitions = shuffleArray(question.pairs.map(p => p.definition));
+
+        const createBtn = (text, type, container) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn cyber-btn w-full py-2 px-4 rounded-md text-left';
+            btn.dataset.text = text;
+            btn.textContent = text;
+            btn.dataset.type = type;
+            btn.addEventListener('click', () => handleMatchingSelection(btn));
+            container.appendChild(btn);
+        };
+        
+        terms.forEach(term => createBtn(term, 'left', leftContainer));
+        definitions.forEach(def => createBtn(def, 'right', rightContainer));
+        document.getElementById('matching-submit').disabled = false;
+    }
+
+    function handleMatchingSelection(btn) {
+        const type = btn.dataset.type;
+        const container = type === 'left' ? document.getElementById('matching-left') : document.getElementById('matching-right');
+        
+        // Disable other buttons in the same column
+        if (gameState.matchingSelections[type] && gameState.matchingSelections[type] !== btn) {
+          gameState.matchingSelections[type].classList.remove('selected-item');
+        }
+
+        btn.classList.add('selected-item');
+        gameState.matchingSelections[type] = btn;
+    }
+    
+    function checkAnswer(isCorrect, correctAnswerText) {
+      clearInterval(gameState.timerInterval);
+      if (isCorrect) {
+        updateScore(10 + gameState.timeLeft); // タイムボーナス
+        gameState.correctAnswers++;
+        showFeedback(true, `正解！`);
+      } else {
+        showFeedback(false, `正解は: ${correctAnswerText}`);
+      }
+      nextBtn.classList.remove('hidden');
+    }
+
+    function checkMultipleChoiceAnswer(selectedOption, btn) {
+      const question = gameState.questions[gameState.currentQuestionIndex];
+      const isCorrect = selectedOption === question.answer;
+
+      document.querySelectorAll('#options-container button').forEach(b => {
+        if (b.textContent === question.answer) {
+          b.classList.add('correct');
+        } else if (b === btn) {
+          b.classList.add('incorrect');
+        }
+        b.disabled = true;
+      });
+      checkAnswer(isCorrect, question.answer);
+    }
+    
+    function checkTypingAnswer() {
+      const input = document.getElementById('typing-input');
+      const userAnswer = input.value.trim();
+      if (!userAnswer) return;
+      const question = gameState.questions[gameState.currentQuestionIndex];
+      input.disabled = true;
+      document.getElementById('typing-submit').disabled = true;
+      checkAnswer(userAnswer === question.answer, question.answer);
+    }
+
+    function checkOrderingAnswer() {
+      const question = gameState.questions[gameState.currentQuestionIndex];
+      const selected = Array.from(document.getElementById('ordering-answer').children).map(el => el.textContent);
+      document.getElementById('ordering-submit').disabled = true;
+      checkAnswer(JSON.stringify(selected) === JSON.stringify(question.answer), question.answer.join(' → '));
+    }
+
+    function checkMatchingAnswer() {
+      const { left, right } = gameState.matchingSelections;
+      if (!left || !right) {
+        alert('両方の列から1つずつ選択してください。');
+        return;
+      }
+      const question = gameState.questions[gameState.currentQuestionIndex];
+      const answerMap = new Map(question.pairs.map(p => [p.term, p.definition]));
+      
+      document.getElementById('matching-submit').disabled = true;
+      document.querySelectorAll('#matching-left button, #matching-right button').forEach(b => b.disabled = true);
+
+      const isCorrectPair = answerMap.get(left.dataset.text) === right.dataset.text;
+      
+      if(isCorrectPair) {
+        left.classList.add('correct');
+        right.classList.add('correct');
+      } else {
+        left.classList.add('incorrect');
+        right.classList.add('incorrect');
+      }
+
+      checkAnswer(isCorrectPair, `「${left.dataset.text}」の正しい組み合わせは「${answerMap.get(left.dataset.text)}」です。`);
+    }
+
+    function showFeedback(isCorrect, text) {
+      feedbackText.textContent = text;
+      feedbackText.className = isCorrect ? 'text-green-400 font-bold' : 'text-red-400 font-bold';
+      feedbackContainer.classList.remove('hidden');
+    }
+
+    function updateScore(points) {
+      gameState.score += points;
+      scoreDisplay.textContent = gameState.score;
+      scoreDisplay.classList.add('score-animation');
+      setTimeout(() => scoreDisplay.classList.remove('score-animation'), 500);
+    }
+    
+    function startTimer() {
+      gameState.timeLeft = 60;
+      timerDisplay.textContent = gameState.timeLeft;
+      timeBar.style.width = '100%';
+      gameState.timerInterval = setInterval(() => {
+        gameState.timeLeft--;
+        timerDisplay.textContent = gameState.timeLeft;
+        timeBar.style.width = `${(gameState.timeLeft / 60) * 100}%`;
+        if (gameState.timeLeft <= 0) {
+          clearInterval(gameState.timerInterval);
+          // タイムアップ時の処理をモードごとに行う
+          const question = gameState.questions[gameState.currentQuestionIndex];
+          switch(gameState.mode) {
+            case 'multiple-choice':
+                document.querySelectorAll('#options-container button').forEach(b => b.disabled = true);
+                checkAnswer(false, question.answer);
+                break;
+            case 'typing':
+                document.getElementById('typing-input').disabled = true;
+                checkAnswer(false, question.answer);
+                break;
+            case 'ordering':
+                document.getElementById('ordering-submit').disabled = true;
+                checkAnswer(false, question.answer.join(' → '));
+                break;
+            case 'matching':
+                document.getElementById('matching-submit').disabled = true;
+                checkAnswer(false, '時間切れです');
+                break;
+          }
+        }
+      }, 1000);
+    }
+
+    function nextQuestion() {
+      gameState.currentQuestionIndex++;
+      displayQuestion();
+      if(gameState.currentQuestionIndex < gameState.questions.length) {
+        startTimer();
+      }
+    }
+
+    function endGame() {
+      clearInterval(gameState.timerInterval);
+      gameScreen.classList.add('hidden');
+      resultsScreen.classList.remove('hidden');
+      const totalQuestions = gameState.questions.length;
+      const accuracy = totalQuestions > 0 ? Math.round((gameState.correctAnswers / totalQuestions) * 100) : 0;
+      finalScore.textContent = gameState.score;
+      correctCount.textContent = `${gameState.correctAnswers}/${totalQuestions}`;
+      accuracyDisplay.textContent = `${accuracy}%`;
+      let rank, comment;
+      if (accuracy >= 90) { rank = 'S'; comment = '素晴らしい！完璧なハッカーだ！'; } 
+      else if (accuracy >= 70) { rank = 'A'; comment = '優秀だ！あと少しで完璧！'; } 
+      else if (accuracy >= 50) { rank = 'B'; comment = '良い調子！繰り返し挑戦しよう！'; } 
+      else if (accuracy >= 30) { rank = 'C'; comment = 'まだ伸びしろがあるぞ！'; } 
+      else { rank = 'D'; comment = 'もっと学習が必要だ。頑張ろう！'; }
+      rankText.textContent = `ランク: ${rank}`;
+      rankComment.textContent = comment;
+    }
+
+  </script>
+</body>
+</html>
